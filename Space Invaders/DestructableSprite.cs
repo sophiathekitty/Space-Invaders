@@ -31,6 +31,7 @@ namespace IngameScript
             char delChar = rgb(255,0,0);
             public DestructableSprite(Vector2 position, float scale, Vector2 size, string data) : base(position, scale, size, data)
             {
+                Color = Color.Green;
                 baseData = data;
             }
             public void Reset()

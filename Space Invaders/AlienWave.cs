@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using VRage;
 using VRage.Collections;
@@ -28,16 +29,56 @@ namespace IngameScript
         public class AlienWave : IScreenSpriteProvider
         {
             List<AnimatedSprite> invaders = new List<AnimatedSprite>();
-            string wave = 
-                "111111111" +
-                "222222222" +
-                "222222222" +
-                "333333333" +
-                "333333333";
+            string[] waves =
+                {
+                    "000000000" +
+                    "002222200" +
+                    "000000000" +
+                    "000000000" +
+                    "000000000",
+
+                    "000000000" +
+                    "022222220" +
+                    "000000000" +
+                    "000000000" +
+                    "000000000",
+
+                    "000000000" +
+                    "000000000" +
+                    "222222222" +
+                    "000000000" +
+                    "000000000",
+
+                    "000000000" +
+                    "111111111" +
+                    "222222222" +
+                    "000000000" +
+                    "000000000",
+
+                    "111111111" +
+                    "222222222" +
+                    "333333333" +
+                    "000000000" +
+                    "000000000",
+
+                    "111111111" +
+                    "222222222" +
+                    "222222222" +
+                    "333333333" +
+                    "000000000",
+
+                    "111111111" +
+                    "222222222" +
+                    "222222222" +
+                    "333333333" +
+                    "333333333"
+                };
+            int waveIndex = 0;
             RectangleF viewport;
             Vector2 velocity;
             Vector2 position;
             Vector2 startPosition;
+            Color[] colors = new Color[] { Color.Cyan, Color.Purple, Color.Yellow };
             public Vector2 Position 
             { 
                 get { return position; } 
@@ -45,12 +86,17 @@ namespace IngameScript
                 { 
                     position = value; 
                     int i = 0;
+                    int j = 0;
                     float spacing = viewport.Width / (gridSize.X + 1);
                     for (int row = 0; row < gridSize.Y; row++)
                     {
                         for(int col = 0; col < gridSize.X; col++)
                         {
-                            invaders[i].Position = position + new Vector2(col * (spacing), row * (spacing));
+                            if (waves[waveIndex][i] != '0')
+                            {
+                                invaders[j].Position = position + new Vector2(col * (spacing), row * (spacing));
+                                j++;
+                            }
                             i++;
                         }
                     }
@@ -65,9 +111,20 @@ namespace IngameScript
                     {
                         if(!invader.Visible) continue;
                         Vector2 screenSize = invader.PixelToScreen(invader.Size);
-                        points.Add(invader.Position);// + new Vector2(screenSize.X / 2, screenSize.Y));
+                        points.Add(invader.Position + new Vector2(screenSize.X / 2, screenSize.Y));
                     }
                     return points;
+                }
+            }
+            public bool isDefeated
+            {
+                get
+                {
+                    foreach (var invader in invaders)
+                    {
+                        if(invader.Visible) return false;
+                    }
+                    return true;
                 }
             }
             Vector2 size;
@@ -83,7 +140,7 @@ namespace IngameScript
                 this.viewport = viewport;
                 spriteSize = size;
                 float spacing = viewport.Width / (cols + 2);
-                LoadWave(wave);
+                LoadWave(0);
                 /*
                 int i = 0;
                 for (int row = 0; row < rows; row++)
@@ -99,11 +156,21 @@ namespace IngameScript
                 this.size = new Vector2(cols * spacing, rows * spacing) + (invaders[0].PixelToScreen(invaders[0].Size));
                 velocity = new Vector2(InvaderGame.enemy_speed, 0);
             }
-            public void LoadWave(string wave)
+            public void NextWave()
             {
+                waveIndex++;
+                if (waveIndex >= waves.Length)
+                {
+                    InvaderGame.Score += 1978;
+                    waveIndex = 0;
+                }
+                LoadWave(waveIndex);
+            }
+            public void LoadWave(int index)
+            {
+                waveIndex = index;
                 int rows = gridSize.Y;
                 int cols = gridSize.X;
-                this.wave = wave;
                 if(screen != null) screen.RemoveSprite(this);
                 invaders.Clear();
                 float spacing = viewport.Width / (cols + 2);
@@ -112,7 +179,8 @@ namespace IngameScript
                 {
                     for (int col = 0; col < cols; col++)
                     {
-                        if (wave[i] != 0) invaders.Add(new AnimatedSprite(position + new Vector2(col * (spacing), row * (spacing)), RasterSprite.DEFAULT_PIXEL_SCALE, spriteSize, GetAliveInvaders(wave[i]), SpriteLibrary.Sprites["alienDeath"][0]));
+                        if (waves[index][i] != '0') invaders.Add(new AnimatedSprite(position + new Vector2(col * (spacing), row * (spacing)), RasterSprite.DEFAULT_PIXEL_SCALE, spriteSize, GetAliveInvaders(waves[index][i]), SpriteLibrary.Sprites["alienDeath"][0]));
+                        if (waves[index][i] != '0') invaders[invaders.Count - 1].Color = colors[waves[index][i] - '1'];
                         i++;
                     }
                 }
@@ -177,6 +245,7 @@ namespace IngameScript
                         invader.Visible = false;
                         continue;
                     }
+                    if(bullet.Visible == false) continue;
                     if(invader.Intersect(bullet))
                     {
                         invader.IsDead = true;

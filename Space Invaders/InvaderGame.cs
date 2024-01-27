@@ -26,8 +26,10 @@ namespace IngameScript
     {
         public class InvaderGame : Screen
         {
-            int score = 0;
-            int highScore = 0;
+            public static int Score { get { return score; } set { score = value; if (highScore < score) { highScore = score; GridInfo.SetVar("HighScore",highScore.ToString()); } } }
+            static int score = 0;
+            static int highScore = 0;
+            int lives = 3;
             public static float player_speed = 3;
             public static float enemy_speed = 0.5f;
             public static bool game_over = false;
@@ -38,6 +40,17 @@ namespace IngameScript
             Bullet EnemyBullet;
             List<DestructableSprite> barrier = new List<DestructableSprite>();
             AlienWave wave;
+            ScreenSprite scoreDisplay;
+            ScreenSprite highScoreDisplay;
+            ScreenSprite livesDisplay;
+            float fontSize = 0.5f;
+            // game over display (when player is present and dead)
+            ScreenSprite gameOverDisplay;
+            ScreenSprite continueControls;
+            // title display (when player not present)
+            ScreenSprite title;
+            ScreenSprite gameControls;
+            Random rand = new Random();
             //------------------------------------------------------------------
             // constructor
             //------------------------------------------------------------------
@@ -54,6 +67,7 @@ namespace IngameScript
                 // player bullet
                 playerBullet = new Bullet(new Vector2(0, 0), RasterSprite.DEFAULT_PIXEL_SCALE, SpriteLibrary.Sprites["playerBullet"], SpriteLibrary.Sprites["explosion"][0], new Vector2(0, -bullet_speed));
                 AddSprite(playerBullet);
+                playerBullet.Color = Color.LightGreen;
                 playerBullet.IsDead = true;
                 playerBullet.Visible = false;
                 // create enemy bullet
@@ -70,6 +84,29 @@ namespace IngameScript
                 // create alien wave
                 wave = new AlienWave(new Vector2(Size.X * 0.02f, Size.Y * 0.1f), RasterSprite.DEFAULT_PIXEL_SCALE, new Vector2(16, 8), Viewport);
                 AddSprite(wave);
+                // create score display
+                scoreDisplay = new ScreenSprite(ScreenSprite.ScreenSpriteAnchor.TopLeft, new Vector2(0, 0), fontSize, Vector2.Zero,Color.White,"Monospace","Score: 0",TextAlignment.LEFT,SpriteType.TEXT);
+                AddSprite(scoreDisplay);
+                // create high score display
+                highScoreDisplay = new ScreenSprite(ScreenSprite.ScreenSpriteAnchor.TopCenter, new Vector2(0, 0), fontSize, Vector2.Zero, Color.White, "Monospace", "High Score: 0", TextAlignment.CENTER, SpriteType.TEXT);
+                AddSprite(highScoreDisplay);
+                // create lives display
+                livesDisplay = new ScreenSprite(ScreenSprite.ScreenSpriteAnchor.TopRight, new Vector2(0, 0), fontSize, Vector2.Zero, Color.White, "Monospace", "Lives: 3", TextAlignment.RIGHT, SpriteType.TEXT);
+                AddSprite(livesDisplay);
+                // create game over display
+                gameOverDisplay = new ScreenSprite(ScreenSprite.ScreenSpriteAnchor.Center, new Vector2(0, -50), fontSize*2.5f, Vector2.Zero, Color.White, "Monospace", "Game Over", TextAlignment.CENTER, SpriteType.TEXT);
+                AddSprite(gameOverDisplay);
+                // create continue controls
+                continueControls = new ScreenSprite(ScreenSprite.ScreenSpriteAnchor.Center, new Vector2(0, 10), fontSize*1.5f, Vector2.Zero, Color.White, "Monospace", "Press C to Continue", TextAlignment.CENTER, SpriteType.TEXT);
+                AddSprite(continueControls);
+                gameOverDisplay.Visible = false;
+                continueControls.Visible = false;
+                // create title display
+                title = new ScreenSprite(ScreenSprite.ScreenSpriteAnchor.Center, new Vector2(0, -50), fontSize*2.5f, Vector2.Zero, Color.White, "Monospace", "Space Invaders", TextAlignment.CENTER, SpriteType.TEXT);
+                AddSprite(title);
+                // create game controls
+                gameControls = new ScreenSprite(ScreenSprite.ScreenSpriteAnchor.Center, new Vector2(0, 10), fontSize*1.5f, Vector2.Zero, Color.White, "Monospace", "A and W to Move\nSpace to Shoot", TextAlignment.CENTER, SpriteType.TEXT);
+                AddSprite(gameControls);
             }
             //------------------------------------------------------------------
             // main function to handle arguments
@@ -87,23 +124,42 @@ namespace IngameScript
             //------------------------------------------------------------------
             // update function to handle game logic
             //------------------------------------------------------------------
-            Random rand = new Random();
+            bool playerPresent = false;
             public override void Update()
             {
+                // update score
+                scoreDisplay.Data = "Score: " + score.ToString();
+                if(score > highScore) { highScore = score; GridInfo.SetVar("HighScore", highScore.ToString()); }
+                highScoreDisplay.Data = "High Score: " + highScore.ToString();
+                livesDisplay.Data = "Lives: " + lives.ToString();
+                // check for player
+                if (input.PlayerPresent)
+                {
+                    if (!playerPresent)
+                    {
+                        playerPresent = true;
+                        Reset();
+                    }
+                    title.Visible = false;
+                    gameControls.Visible = false;
+                } 
+                else
+                {
+                    if(playerPresent) Reset();
+                    playerPresent = false;
+                    title.Visible = true;
+                    gameControls.Visible = true;
+                    return;
+                }
+                // check for game over
                 if(game_over)
                 {
+                    gameOverDisplay.Visible = true;
+                    continueControls.Visible = true;
                     // game over logic goes here
                     if(input.C)
                     {
-                        game_over = false;
-                        score = 0;
-                        player.Position = new Vector2(Size.X / 2, Size.Y * 0.9f);
-                        player.IsDead = false;
-                        wave.Reset();
-                        foreach(DestructableSprite b in barrier)
-                        {
-                            b.Reset();
-                        }
+                        Reset();
                     }
                     return;
                 }
@@ -124,10 +180,29 @@ namespace IngameScript
                         EnemyBullet.Visible = true;
                         EnemyBullet.IsDead = false;
                         GridInfo.Echo("Enemy Bullet: " + EnemyBullet.Position.ToString());
+                    } 
+                    else
+                    {
+                        // wave dead
+                        wave.NextWave();
+                        foreach(DestructableSprite b in barrier)
+                        {
+                            b.Reset();
+                        }
+                        score += 100;
                     }
                 } else if (EnemyBullet.IsDead) EnemyBullet.Visible = false;
+                if (player.IsDead && lives > 0)
+                {
+                    player.IsDead = false;
+                    player.Position = new Vector2(Size.X / 2, Size.Y * 0.9f);
+                    if (EnemyBullet.Visible && EnemyBullet.IsDead)
+                    {
+                        EnemyBullet.Visible = false;
+                    }
+                }
                 // check for player bullet
-                if(input.Space && !playerBullet.Visible)
+                if (input.Space && !playerBullet.Visible)
                 {
                     // shoot
                     playerBullet.Position = player.Position + new Vector2(player.PixelToScreen(player.Size).X/2,0) - playerBullet.PixelToScreen(playerBullet.Size);
@@ -164,7 +239,13 @@ namespace IngameScript
                 if(player.Intersect(EnemyBullet))
                 {
                     player.IsDead = true;
-                    game_over = true;
+                    //game_over = true;
+                    lives--;
+                    if(lives <= 0)
+                    {
+                        game_over = true;
+                        lives = 0;
+                    }
                     EnemyBullet.IsDead = true;
 
                 }
@@ -173,13 +254,28 @@ namespace IngameScript
                     EnemyBullet.IsDead = true;
                     EnemyBullet.Visible = false;
                 }
-                if(EnemyBullet.Intersect(playerBullet))
+            }
+            // reset game
+            public void Reset()
+            {
+                score = 0;
+                lives = 3;
+                player.Position = new Vector2(Size.X / 2, Size.Y * 0.9f);
+                player.IsDead = false;
+                wave.LoadWave(0);
+                foreach (DestructableSprite b in barrier)
                 {
-                    EnemyBullet.IsDead = true;
-                    //EnemyBullet.Visible = false;
-                    playerBullet.IsDead = true;
-                    //playerBullet.Visible = false;
+                    b.Reset();
                 }
+                game_over = false;
+                EnemyBullet.IsDead = true;
+                EnemyBullet.Visible = false;
+                EnemyBullet.Position = new Vector2(-100, 0);
+                playerBullet.IsDead = true;
+                playerBullet.Visible = false;
+                playerBullet.Position = new Vector2(-100, 0);
+                gameOverDisplay.Visible = false;
+                continueControls.Visible = false;
             }
         }
     }

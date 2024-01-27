@@ -31,6 +31,7 @@ namespace IngameScript
             public Player(Vector2 position, float scale, List<string> frames, string death, GameInput input) : base(position, scale, new Vector2(16,8), frames, death)
             {
                 this.input = input;
+                Color = Color.Green;
             }
             public void Update()
             {
