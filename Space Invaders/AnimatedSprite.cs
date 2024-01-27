@@ -30,7 +30,7 @@ namespace IngameScript
             int frameDelay = 0;
             static int frameDelayMax = 5;
             bool isDead = false;
-            public bool IsDead { get { return isDead; } set { isDead = value; frameDelay = frameDelayMax; } }
+            public bool IsDead { get { return isDead; } set { isDead = value; Data = value ? death : frames[0]; } }
             public AnimatedSprite(Vector2 position, float scale, Vector2 size, List<string> frames, string death) : base(position, scale, size, frames[0])
             {
                 this.frames = frames;

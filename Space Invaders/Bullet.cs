@@ -35,7 +35,7 @@ namespace IngameScript
             }
             public void Update()
             {
-                if(isDead) return;
+                if(IsDead) return;
                 Position += velocity;
             }
         }

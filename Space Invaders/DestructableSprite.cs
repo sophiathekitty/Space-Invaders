@@ -33,19 +33,24 @@ namespace IngameScript
             {
                 baseData = data;
             }
+            public void Reset()
+            {
+                Data = baseData;
+            }
             public bool Hit(Bullet bullet)
             {
                 if(bullet.Visible == false) return false;
-                bool hit = Intersect(bullet,true,true);
+                bool hit = Intersect(bullet);
                 if (bullet.IsDead)
                 {
                     bullet.Visible = false;
                 }
                 if (hit)
-                {
+                {                    
                     GridInfo.Echo("Hit: bullet dead? "+ bullet.IsDead);
                     if(bullet.IsDead) bullet.Visible = false;
                     bullet.IsDead = true;
+                    Intersect(bullet,true,true);
                     Data = Data.Replace(delChar.ToString(), INVISIBLE);
                 }
                 return hit;

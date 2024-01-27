@@ -34,7 +34,7 @@ namespace IngameScript
             }
             public void Update()
             {
-                if(isDead) return;
+                if(IsDead) return;
                 if(input.A) Position += new Vector2(-InvaderGame.player_speed, 0);
                 if(input.D) Position += new Vector2(InvaderGame.player_speed, 0);
             }

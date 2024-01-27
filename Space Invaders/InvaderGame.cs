@@ -6,6 +6,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -27,19 +28,22 @@ namespace IngameScript
         {
             int score = 0;
             int highScore = 0;
-            public static float player_speed = 2;
-            float enemy_speed = 1;
-            float bullet_speed = 3f;
+            public static float player_speed = 3;
+            public static float enemy_speed = 0.5f;
+            public static bool game_over = false;
+            float bullet_speed = 6f;
             GameInput input;
             Player player;
             Bullet playerBullet;
             Bullet EnemyBullet;
             List<DestructableSprite> barrier = new List<DestructableSprite>();
+            AlienWave wave;
             //------------------------------------------------------------------
             // constructor
             //------------------------------------------------------------------
             public InvaderGame(IMyTextSurface drawingSurface) : base(drawingSurface)
             {
+                BackgroundColor = new Color(0, 0, 100);
                 // initialize game
                 GridInfo.Echo("Initializing Game");
                 highScore = GridInfo.GetVarAs("HighScore", highScore);
@@ -63,6 +67,9 @@ namespace IngameScript
                     barrier.Add(new DestructableSprite(new Vector2(Size.X * 0.1f + i * Size.X * 0.2f, Size.Y * 0.8f), RasterSprite.DEFAULT_PIXEL_SCALE, new Vector2(24, 16), SpriteLibrary.Sprites["barrier"][0]));
                     AddSprite(barrier[i]);
                 }
+                // create alien wave
+                wave = new AlienWave(new Vector2(Size.X * 0.02f, Size.Y * 0.1f), RasterSprite.DEFAULT_PIXEL_SCALE, new Vector2(16, 8), Viewport);
+                AddSprite(wave);
             }
             //------------------------------------------------------------------
             // main function to handle arguments
@@ -80,12 +87,46 @@ namespace IngameScript
             //------------------------------------------------------------------
             // update function to handle game logic
             //------------------------------------------------------------------
+            Random rand = new Random();
             public override void Update()
             {
+                if(game_over)
+                {
+                    // game over logic goes here
+                    if(input.C)
+                    {
+                        game_over = false;
+                        score = 0;
+                        player.Position = new Vector2(Size.X / 2, Size.Y * 0.9f);
+                        player.IsDead = false;
+                        wave.Reset();
+                        foreach(DestructableSprite b in barrier)
+                        {
+                            b.Reset();
+                        }
+                    }
+                    return;
+                }
                 // game logic goes here
                 player.Update();
                 playerBullet.Update();
                 EnemyBullet.Update();
+                wave.Update();
+                // check for enemy bullet
+                if(EnemyBullet.Visible == false)
+                {
+                    // shoot
+                    List<Vector2> origins = wave.BulletPoints;
+                    if(origins.Count > 0)
+                    {
+                        Vector2 origin = origins[rand.Next(origins.Count)];
+                        EnemyBullet.Position = origin;
+                        EnemyBullet.Visible = true;
+                        EnemyBullet.IsDead = false;
+                        GridInfo.Echo("Enemy Bullet: " + EnemyBullet.Position.ToString());
+                    }
+                } else if (EnemyBullet.IsDead) EnemyBullet.Visible = false;
+                // check for player bullet
                 if(input.Space && !playerBullet.Visible)
                 {
                     // shoot
@@ -106,6 +147,38 @@ namespace IngameScript
                 foreach(DestructableSprite b in barrier)
                 {
                     b.Hit(playerBullet);
+                    b.Hit(EnemyBullet);
+                }
+                // hit enemy
+                if(wave.Hit(playerBullet))
+                {
+                    playerBullet.IsDead = true;
+                    playerBullet.Visible = false;
+                    score += 10;
+                    if(score > highScore)
+                    {
+                        highScore = score;
+                        GridInfo.SetVar("HighScore", highScore.ToString());
+                    }
+                }
+                if(player.Intersect(EnemyBullet))
+                {
+                    player.IsDead = true;
+                    game_over = true;
+                    EnemyBullet.IsDead = true;
+
+                }
+                if (EnemyBullet.Position.Y > Size.Y)
+                {
+                    EnemyBullet.IsDead = true;
+                    EnemyBullet.Visible = false;
+                }
+                if(EnemyBullet.Intersect(playerBullet))
+                {
+                    EnemyBullet.IsDead = true;
+                    //EnemyBullet.Visible = false;
+                    playerBullet.IsDead = true;
+                    //playerBullet.Visible = false;
                 }
             }
         }
