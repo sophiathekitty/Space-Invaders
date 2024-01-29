@@ -33,6 +33,7 @@ namespace IngameScript
             Echo("Grid Blocks Ready");
             SpriteLibrary.Load();
             Echo("Sprite Library Ready");
+            GameSoundPlayer.Init();
             game = new InvaderGame(GridBlocks.GetTextSurface("Main Display"));
             Echo("Game Ready");
             Runtime.UpdateFrequency = UpdateFrequency.Update1;

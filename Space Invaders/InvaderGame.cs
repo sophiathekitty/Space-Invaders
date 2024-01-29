@@ -120,6 +120,7 @@ namespace IngameScript
                     GridInfo.SetVar("HighScore", "0");
                 }
                 else base.Main(argument);
+                GameSoundPlayer.Update();
             }
             //------------------------------------------------------------------
             // update function to handle game logic
@@ -180,7 +181,8 @@ namespace IngameScript
                         EnemyBullet.Visible = true;
                         EnemyBullet.IsDead = false;
                         GridInfo.Echo("Enemy Bullet: " + EnemyBullet.Position.ToString());
-                    } 
+                        //GameSoundPlayer.Play("FlappyHit");
+                    }
                     else
                     {
                         // wave dead
@@ -208,6 +210,7 @@ namespace IngameScript
                     playerBullet.Position = player.Position + new Vector2(player.PixelToScreen(player.Size).X/2,0) - playerBullet.PixelToScreen(playerBullet.Size);
                     playerBullet.Visible = true;
                     playerBullet.IsDead = false;
+                    //GameSoundPlayer.Play("FlappyHit");
                 }
                 // make sure the player stays on screen
                 if(player.Position.X < 0) player.Position = new Vector2(0, player.Position.Y);
@@ -247,7 +250,7 @@ namespace IngameScript
                         lives = 0;
                     }
                     EnemyBullet.IsDead = true;
-
+                    GameSoundPlayer.Play("FlappyDie");
                 }
                 if (EnemyBullet.Position.Y > Size.Y)
                 {

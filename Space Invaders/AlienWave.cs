@@ -252,6 +252,7 @@ namespace IngameScript
                         bullet.IsDead = true;
                         bullet.Visible = false;
                         deadframes = 2;
+                        GameSoundPlayer.Play("FlappyPoint");
                         return true;
                     }
                 }

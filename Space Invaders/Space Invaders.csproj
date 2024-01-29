@@ -43,6 +43,7 @@
     <Compile Include="Bullet.cs" />
     <Compile Include="DestructableSprite.cs" />
     <Compile Include="GameInput.cs" />
+    <Compile Include="GameSoundPlayer.cs" />
     <Compile Include="GridBlocks.cs" />
     <Compile Include="GridInfo.cs" />
     <Compile Include="InvaderGame.cs" />
